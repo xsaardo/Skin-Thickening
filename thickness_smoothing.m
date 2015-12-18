@@ -1,15 +1,14 @@
-function [new_thickness] = thickness_smoothing(skin_info)
-
-thick = skin_info(:,5);
+function [new_thickness] = thickness_smoothing(thickness)
+% Remove anomalous outlier thickness values 
 
 mavg = 5;
-new_thickness = zeros(size(thick));
+new_thickness = thickness;
 
-for ii = 1+mavg:length(thick)-mavg
-    if thick(ii) > mean(thick(ii-mavg:ii+mavg)) + std(thick(ii-mavg:ii+mavg));
-        new_thickness(ii) = mean(thick(ii-mavg:ii+mavg)) ;
+for ii = 1+mavg:length(thickness)-mavg
+    if thickness(ii) > mean(thickness(ii-mavg:ii+mavg))
+        new_thickness(ii) = mean(thickness(ii-mavg:ii-1));
     else
-        new_thickness(ii) = thick(ii);
+        new_thickness(ii) = thickness(ii);
     end
 end
 
