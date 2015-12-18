@@ -1,7 +1,7 @@
 # Skin-Thickening
 
 plotskinlayers.m plots the internal skin layer points on top of the original image as well as a plot of thickness vs position and average thickness.
-skin.m generates a matrix containing the breast boundary coordinates and corresponding normal vectors and skin thickness.
+skin.m generates a matrix containing the breast boundary coordinates and corresponding normal vectors and skin thickness for use in plotskinlayers.m.
 
 The images folder contains all of the images after processing with the above scripts
 
