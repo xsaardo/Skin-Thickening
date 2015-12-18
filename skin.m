@@ -1,13 +1,15 @@
-function [skin_info,imgpath] = skin(imgpath)
-%% Parameters
-roi_size = 100;  % Dimension of ROI for determining direction is square with sides (2*roi_size+1)
-dist = 100;      % Distance of pixels perpendicular to breast outline to check
+function [skin_info,img] = skin(img)
+% Given path to an image, constructs matrix containing breast boundary
+% coordinates, corresponding normal vector, and skin thickness
 
-%% Skin Thickness Detection
-original_img = imread(imgpath);
+%% Parameters
+roi_size = 50;  % Dimension of ROI for determining direction is square with sides (2*roi_size+1)
+dist = 50;      % Distance of pixels perpendicular to breast outline to check
+
+original_img = img;
 % original_img = dicomread(imgpath);
 
-% Segmentation
+%% Segmentation to identify breast boundary points
 gmag = imgradient(original_img);
 gmag = im2bw(gmag,0);
 gmag = ~gmag;
@@ -19,21 +21,25 @@ bw_img = imclose(bw_img,se);
 
 % Boundary Marking
 edges = bwperim(bw_img);
+
+% Remove image boundaries from edge point set
 edges(1,:) = 0;
 edges(:,1) = 0;
 edges(end,:) = 0;
+edges(:,end) = 0;
 [edge_row,edge_col] = find(edges);
 
 % Sort edge points by row
 [edge_row, index] = sort(edge_row);
 edge_col = edge_col(index);
 
-% Initialize direction matrix/thickness vector/corresponding internal skin pixel for each edge pixel
+% Initialize direction matrix/thickness vector for each edge pixel
 dirs = zeros(length(edge_col),2);
 thickness = zeros(length(edge_col),1);
 
-% Find corresponding internal skin layer pixel for each boundary pixel
-for i = 1:30:length(edge_col)
+%% Find corresponding internal skin layer thickness for each boundary pixel
+
+for i = 1:5:length(edge_col)
     
     % Ignore edge pixels close to image boundaries
     if edge_row(i) - roi_size < 1 || edge_row(i) + roi_size > size(original_img,1) ...
@@ -41,9 +47,11 @@ for i = 1:30:length(edge_col)
         continue;
     end
     
+    % Identify thresholded ROI around each boundary pixel
     roi = bw_img((edge_row(i)-roi_size):(edge_row(i)+roi_size), ...
         (edge_col(i)-roi_size):(edge_col(i)+roi_size));
     
+    % Find angle of breast boundary for each ROI
     a = find(imgradient(roi(1,:)),1);
     b = find(imgradient(roi(end,:)),1);
     c = find(imgradient(roi(:,1)),1);
@@ -65,13 +73,14 @@ for i = 1:30:length(edge_col)
         angle = atan(size(roi,1)/(a(1)-b(1)));
     end
     
-    
+    % Given angle of breast boundary, find angle perp to breast boundary
     if angle >= 0
         angle = angle - pi/2;
     elseif angle < 0
         angle = angle + pi/2;
     end
     
+    % Normal vector to breast boundary
     dirs(i,:) = [cos(-angle) sin(-angle)];
     
     % Pixel intensity profile of line perpendicular to edge
@@ -79,19 +88,23 @@ for i = 1:30:length(edge_col)
     xi = [edge_col(i),edge_col(i) + dist*dirs(i,1)];
     linelength = round(sqrt((dist*dirs(i,1))^2+(dist*dirs(i,2))^2));
     skinhist = improfile(original_img,xi,yi,linelength);
-    
+
     % Find internal skin pixel based on gradient minimum
     skinhist = gradient(skinhist);
-    [pks,loc] = findpeaks(-skinhist); 
-    pks(pks < 7) = 0;
-    loc = loc(pks == max(pks));
+    [pks,loc] = findpeaks(-skinhist);   % Find local gradient minima
+    pks(pks < 7) = 0;                   % Remove small local minima (no visible skin layer)
+    loc = loc(pks == max(pks));         % Select pixel location of highest gradient
     if isempty(loc)
         continue;
     end
     thickness(i) = loc(1);
 end
 
+% For each breast boundary coordinate, store normal vector and skin
+% thickness
 skin_info = [edge_col,edge_row,dirs,thickness];
-skin_info(skin_info(:,3) == 0,:) = [];
+
+% Remove rows without the above information due to skipped boundary points
+skin_info(skin_info(:,5) == 0,:) = [];
 
 end

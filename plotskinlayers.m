@@ -1,16 +1,43 @@
-function [] = plotskinlayers(skin_info,current_dir,current_img,thickness)
-% original_img = dicomread([current_dir current_img]);
-original_img = imread([current_dir current_img '.png']);
+function [] = plotskinlayers(imgpath)
+% Given path to an image, performs skin thickness analysis and plots skin
+% layer points over original image
+
+original_img = imread(imgpath);
+
+% Resizing 
+resized_img = imresize(original_img, 1000/size(original_img,2));
+
+skin_info = skin(resized_img);
+
+% Extract breast boundary points
 edge_col = skin_info(:,1);
 edge_row = skin_info(:,2);
+
+% Extract normal vectors
 newdirs = skin_info(:,3:4);
 
+% Extract thickness
+thickness = skin_info(:,5);
+thickness = thickness_smoothing(thickness);
+
+% Generate internal layer points
 new_skin_x = edge_col + thickness.*newdirs(:,1);
 new_skin_y = edge_row + thickness.*newdirs(:,2);
 
-imshow(original_img,[]);
+imshow(resized_img,[]);
 hold on;
+
+% Plot breast boundary points
 plot(edge_col,edge_row,'.');
+
+% Plot internal skin layer points
 scatter(new_skin_x, new_skin_y,'x');
 % quiver(edge_col,edge_row,newdirs(:,1),newdirs(:,2));
+
+savefig([imgpath '_labeled.fig']);
+figure;
+plot(thickness);
+title(['Average Skin Thickness = ' num2str(mean(thickness))]);
+savefig([imgpath '_thickness.fig']);
+% close all;
 end
