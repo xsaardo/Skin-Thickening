@@ -41,12 +41,9 @@ plot(edge_col,edge_row,'.');
 scatter(new_skin_x, new_skin_y,'.');
 % quiver(edge_col,edge_row,newdirs(:,1),newdirs(:,2));
 
-legend('Internal w/o outlier truncation', 'External','Internal w/ outlier truncation');
 savefig([imgpath '_labeled.fig']);
 figure;
 plot(abs(thickness));
-xlabel('Along breast boundary');
-ylabel('Skin Thickness (in pixels)');
 title(['Average Skin Thickness = ' num2str(mean(abs(thickness)))]);
 savefig([imgpath '_thickness.fig']);
 close all;
